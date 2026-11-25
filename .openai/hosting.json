@@ -1,6 +1,4 @@
 {
   "project_id": "appgprj_6b0715d84f9c8191a0b1a06d2133b689",
-  "d1": {
-    "binding": "DB"
-  }
+  "d1": "DB"
 }
