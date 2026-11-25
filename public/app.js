@@ -1,0 +1,84 @@
+const pieces = [
+  ['Amphora Vessel', 'Hand-built terracotta', 'amphora', 'A rounded earthenware vessel with twin loop handles and a burnished clay surface.'],
+  ['Pedestal Bowl', 'Speckled stoneware', 'bowl', 'A shallow, wheel-thrown bowl on a low foot, finished with a warm ivory glaze.'],
+  ['Loop Form', 'Black stoneware', 'loop', 'An asymmetrical ring of charcoal clay, shaped around an opening that frames the light.']
+];
+const gallery = document.querySelector('.objects');
+for (const [title, material, image, description] of pieces) {
+  const article = document.createElement('article');
+  article.innerHTML = `<div class="photo"><img src="/assets/${image}.webp" alt="${title} in ${material.toLowerCase()}"></div><details><summary><div><h3>${title}</h3><small>${material}</small></div><span class="plus" aria-hidden="true">+</span></summary><p>${description}</p></details>`;
+  gallery.append(article);
+}
+const dialog = document.querySelector('dialog');
+const form = document.querySelector('form');
+const success = document.querySelector('#success');
+const message = document.querySelector('#error');
+const title = document.querySelector('#booking-title');
+for (const opener of document.querySelectorAll('[data-book]')) {
+  opener.addEventListener('click', () => {
+    title.textContent = 'Visit the studio';
+    form.hidden = false;
+    success.hidden = true;
+    message.textContent = '';
+    form.elements.date.min = new Date().toISOString().slice(0, 10);
+    dialog.showModal();
+  });
+}
+document.querySelector('.close').onclick = document.querySelector('#done').onclick = () => dialog.close();
+dialog.addEventListener('click', event => {
+  if (event.target === dialog && event.clientX < dialog.getBoundingClientRect().left) dialog.close();
+});
+let availabilityCheck = 0;
+async function loadTimes() {
+  const check = ++availabilityCheck;
+  const date = form.elements.date.value;
+  const select = form.elements.time;
+  select.value = '';
+  if (!date) return;
+  select.disabled = true;
+  message.textContent = '';
+  try {
+    const response = await fetch('/api/viewings?date=' + encodeURIComponent(date));
+    if (!response.ok) throw new Error();
+    const {times} = await response.json();
+    if (check !== availabilityCheck) return;
+    for (const option of select.options) {
+      if (option.value) option.disabled = !times.includes(option.value);
+    }
+    if (!times.length) message.textContent = 'All times are taken for this date. Please choose another day.';
+  } catch {
+    if (check === availabilityCheck) message.textContent = 'Availability could not be loaded. Please choose your date again.';
+  } finally {
+    if (check === availabilityCheck) select.disabled = false;
+  }
+}
+form.elements.date.onchange = loadTimes;
+form.onsubmit = async event => {
+  event.preventDefault();
+  const data = Object.fromEntries(new FormData(form));
+  const button = form.querySelector('button');
+  if (!data.time) return;
+  button.disabled = true;
+  button.textContent = 'Booking…';
+  message.textContent = '';
+  try {
+    const response = await fetch('/api/viewings', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
+    if (response.status === 409) {
+      await loadTimes();
+      throw new Error('That time has just been taken. Please select another.');
+    }
+    if (!response.ok) throw new Error('Your viewing could not be booked. Please check your details and try again.');
+    const day = new Intl.DateTimeFormat(undefined,{dateStyle:'long',timeZone:'UTC'}).format(new Date(data.date+'T12:00:00Z'));
+    title.textContent = 'Viewing booked';
+    success.querySelector('p').textContent = `Your private collection viewing is reserved for ${day} at ${data.time} UTC, ${data.name.trim()}.`;
+    form.hidden = true;
+    success.hidden = false;
+    document.querySelector('#done').focus();
+    form.reset();
+  } catch (error) {
+    message.textContent = error.message;
+  } finally {
+    button.textContent = 'Book private viewing';
+    button.disabled = false;
+  }
+};
