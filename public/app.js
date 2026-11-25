@@ -82,3 +82,54 @@ form.onsubmit = async event => {
     button.disabled = false;
   }
 };
+
+// Move each photograph within a fixed crop as its frame crosses the viewport.
+function setupScrollMotion() {
+  const preference = matchMedia('(prefers-reduced-motion: reduce)');
+  const frames = [...document.querySelectorAll('.still, .photo')];
+  let pending = 0;
+
+  function paint() {
+    pending = 0;
+    const height = window.innerHeight;
+    const bounds = frames.map(frame => frame.getBoundingClientRect());
+    for (const [index, rect] of bounds.entries()) {
+      if (!rect.height || rect.bottom < 0 || rect.top > height) continue;
+      const depth = index === 0 ? 24 : 16;
+      const progress = (height - rect.height - 2 * rect.top) / (height + rect.height);
+      const offset = Math.max(-1, Math.min(1, progress)) * depth;
+      const style = frames[index].style;
+      style.setProperty('--travel', offset.toFixed(2) + 'px');
+      style.setProperty('--overscan', String(1 + 2 * (depth + 1) / rect.height));
+    }
+  }
+  function requestPaint() {
+    if (!pending) pending = requestAnimationFrame(paint);
+  }
+  function syncPreference() {
+    cancelAnimationFrame(pending);
+    pending = 0;
+    if (preference.matches) {
+      window.removeEventListener('scroll', requestPaint);
+      window.removeEventListener('resize', requestPaint);
+      return;
+    }
+    window.addEventListener('scroll', requestPaint, {passive:true});
+    window.addEventListener('resize', requestPaint);
+    requestPaint();
+  }
+  preference.addEventListener('change', syncPreference);
+  syncPreference();
+
+  if ('IntersectionObserver' in window) {
+    const reveal = new IntersectionObserver(entries => {
+      entries.filter(entry => entry.isIntersecting).forEach(({target}, index) => {
+        target.style.setProperty('--delay', (index * 50) + 'ms');
+        target.classList.add('in-view');
+        reveal.unobserve(target);
+      });
+    }, {threshold: 0.12});
+    for (const article of gallery.children) reveal.observe(article);
+  }
+}
+setupScrollMotion();

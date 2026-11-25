@@ -37,3 +37,54 @@
 @media(max-width:800px){.wrap{width:91%}.hero{gap:4%;padding:40px 0}.still{aspect-ratio:1/1.12}h1{font-size:clamp(56px,8.5vw,74px)}.objects{gap:15px}.intro p{font-size:16px}.sectiontitle{margin-bottom:18px}}
 @media(max-width:620px){.bar{min-height:68px}.brand{font-size:36px}.brand svg{height:29px;width:25px}nav{gap:14px;font-size:13px}nav a:first-child{display:none}nav .outline{padding:8px 12px}.hero{grid-template-columns:1fr;gap:26px;padding:36px 0}.still{aspect-ratio:1.55}.intro p{margin-bottom:21px}h1{font-size:clamp(62px,15vw,86px);margin:19px 0 17px}.objects{grid-template-columns:1fr;gap:26px}.season{display:none}.photo{aspect-ratio:1.55}#collection{padding-top:27px}dialog{padding:65px 23px 24px}.eyebrow{font-size:11px}footer{gap:14px}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*::before,*::after{animation:none!important;transition:none!important}}
+
+@keyframes settle {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes uncover {
+  from { clip-path: inset(0 0 100% 0 round 22px); }
+  to { clip-path: inset(0 0 0 0 round 22px); }
+}
+@media (prefers-reduced-motion: no-preference) {
+  :root { --ease-settle: cubic-bezier(.2,.78,.24,1); }
+  .intro .eyebrow, .intro > p, .still figcaption {
+    animation: settle 600ms var(--ease-settle) backwards;
+  }
+  .intro > p { animation-delay: 100ms; }
+  .intro .primary { animation: settle 620ms 150ms var(--ease-settle) backwards; }
+  .still { animation: uncover 850ms var(--ease-settle) backwards; }
+  .still figcaption { animation-delay: 300ms; }
+  .still > img, .photo > img {
+    translate: 0 var(--travel, 0px);
+    scale: var(--overscan, 1);
+  }
+  article.in-view { animation: settle 650ms var(--delay, 0ms) var(--ease-settle) backwards; }
+  article.in-view .photo { animation: uncover 750ms var(--delay, 0ms) var(--ease-settle) backwards; }
+  details[open] > p, #success:not([hidden]) {
+    animation: settle 350ms var(--ease-settle) backwards;
+  }
+  dialog[open] label { animation: settle 340ms var(--ease-settle) backwards; }
+  dialog label:nth-of-type(2) { animation-delay: 50ms; }
+  dialog label:nth-of-type(3) { animation-delay: 100ms; }
+  dialog label:nth-of-type(4) { animation-delay: 150ms; }
+
+  @supports (transition-behavior: allow-discrete) and (overlay: auto) {
+    dialog {
+      opacity: 0;
+      transform: translateX(24px);
+      transition: opacity 210ms ease, transform 280ms var(--ease-settle),
+        display 280ms allow-discrete, overlay 280ms allow-discrete;
+    }
+    dialog[open] { opacity: 1; transform: none; animation: none; }
+    dialog::backdrop {
+      opacity: 0;
+      transition: opacity 210ms ease, display 280ms allow-discrete, overlay 280ms allow-discrete;
+    }
+    dialog[open]::backdrop { opacity: 1; }
+    @starting-style {
+      dialog[open] { opacity: 0; transform: translateX(24px); }
+      dialog[open]::backdrop { opacity: 0; }
+    }
+  }
+}
