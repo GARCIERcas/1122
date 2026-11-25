@@ -10,6 +10,9 @@ for (const [title, material, image, description] of pieces) {
   gallery.append(article);
 }
 const dialog = document.querySelector('dialog');
+const drawer = createDrawer(dialog);
+setupPressMotion();
+setupObjectDisclosures(gallery);
 const form = document.querySelector('form');
 const success = document.querySelector('#success');
 const message = document.querySelector('#error');
@@ -21,12 +24,12 @@ for (const opener of document.querySelectorAll('[data-book]')) {
     success.hidden = true;
     message.textContent = '';
     form.elements.date.min = new Date().toISOString().slice(0, 10);
-    dialog.showModal();
+    drawer.open();
   });
 }
-document.querySelector('.close').onclick = document.querySelector('#done').onclick = () => dialog.close();
+document.querySelector('.close').onclick = document.querySelector('#done').onclick = drawer.close;
 dialog.addEventListener('click', event => {
-  if (event.target === dialog && event.clientX < dialog.getBoundingClientRect().left) dialog.close();
+  if (event.target === dialog && event.clientX < dialog.getBoundingClientRect().left) drawer.close();
 });
 let availabilityCheck = 0;
 async function loadTimes() {
